@@ -41,12 +41,13 @@ python app.py
 
 Open **http://127.0.0.1:8765** — live progress bar, log, and browser popup when a match appears. Click "Enable browser notifications" on first visit.
 
-### Deploy to Render
+### Deploy to Railway
 
-Push this repository to GitHub, create a new Render Web Service from it, and set
+Push this repository to GitHub, create a new Railway project from the repository, and set
 `BLIZZARD_CLIENT_ID`, `BLIZZARD_CLIENT_SECRET`, and optionally
-`DISCORD_WEBHOOK_URL` as environment variables. Render can use the included
-`render.yaml` blueprint. Keep the browser tab open to receive browser alerts.
+`DISCORD_WEBHOOK_URL` as environment variables. Railway uses the included
+`railway.json` start configuration. Generate a public domain from the Railway
+service, then keep the browser tab open to receive browser alerts.
 
 ### CLI only
 
