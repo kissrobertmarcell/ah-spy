@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WoW AH Alert — Item 271445</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2d3a4d;
+      --text: #e8edf4;
+      --muted: #8b9cb3;
+      --gold: #ffd100;
+      --green: #4ade80;
+      --red: #f87171;
+      --accent: #3b82f6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 1.25rem;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    header { margin-bottom: 1.25rem; }
+    h1 { font-size: 1.25rem; font-weight: 600; }
+    .sub { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .pill {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.35rem 0.65rem;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+    }
+    .pill.scanning { color: var(--accent); border-color: var(--accent); }
+    .pill.waiting { color: var(--muted); }
+    .pill.error { color: var(--red); border-color: var(--red); }
+    .pill.alert { color: var(--gold); border-color: var(--gold); animation: pulse 1s infinite; }
+    @keyframes pulse { 50% { opacity: 0.7; } }
+    .progress-wrap {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+    }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    .progress-bar {
+      height: 8px;
+      background: var(--bg);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #60a5fa);
+      width: 0%;
+      transition: width 0.2s ease;
+    }
+    .realm { font-size: 0.85rem; margin-top: 0.5rem; color: var(--text); }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    section h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .alerts { padding: 0.75rem 1rem; min-height: 3rem; }
+    .alert-card {
+      background: rgba(255, 209, 0, 0.08);
+      border: 1px solid var(--gold);
+      border-radius: 6px;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .alert-card:last-child { margin-bottom: 0; }
+    .alert-card .price { color: var(--gold); font-size: 1.1rem; font-weight: 700; }
+    .alert-card a { color: var(--accent); font-size: 0.8rem; }
+    .empty { color: var(--muted); font-size: 0.85rem; }
+    .log {
+      max-height: 220px;
+      overflow-y: auto;
+      padding: 0.5rem 1rem;
+      font-family: Consolas, monospace;
+      font-size: 0.75rem;
+      line-height: 1.5;
+    }
+    .log div { padding: 0.1rem 0; }
+    .log .match { color: var(--gold); }
+    .log .alert { color: var(--green); font-weight: 600; }
+    .log .error { color: var(--red); }
+    .notify-btn {
+      margin-top: 0.5rem;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .notify-btn:hover { border-color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Item 271445 — EU AH Monitor</h1>
+    <p class="sub" id="filters">Loading...</p>
+  </header>
+
+  <div class="status-row">
+    <span class="pill waiting" id="status-pill">Starting</span>
+    <span class="sub" id="status-msg">Connecting...</span>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span id="scan-label">Scan —</span>
+      <span id="progress-text">0 / 0</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="realm" id="current-realm">—</div>
+  </div>
+
+  <section>
+    <h2>Alerts</h2>
+    <div class="alerts" id="alerts">
+      <p class="empty">No matches yet — you'll get a popup when one appears.</p>
+    </div>
+    <button class="notify-btn" id="notify-btn" hidden>Enable browser notifications</button>
+  </section>
+
+  <section>
+    <h2>Live log</h2>
+    <div class="log" id="log"></div>
+  </section>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let notifiedKeys = new Set();
+
+    async function loadConfig() {
+      const cfg = await fetch("/api/config").then((r) => r.json());
+      $("filters").textContent =
+        `≤ ${cfg.max_buyout_gold.toLocaleString()}g · Heroic · Socket · Crit/Haste/Mastery · every ${cfg.poll_interval_seconds / 60} min`;
+    }
+
+    let alerts = [];
+
+    function renderAlerts(list) {
+      alerts = list.length ? list : alerts;
+      const el = $("alerts");
+      if (!alerts.length) {
+        el.innerHTML = '<p class="empty">No matches yet — you\'ll get a popup when one appears.</p>';
+        return;
+      }
+      el.innerHTML = alerts.map((a) => `
+        <div class="alert-card">
+          <div class="price">${a.buyout_gold.toLocaleString()}g</div>
+          <div>${a.realm_names}</div>
+          <div style="color:var(--muted);font-size:0.8rem;margin:0.25rem 0">${a.secondaries}</div>
+          <a href="${a.wowhead_url}" target="_blank" rel="noopener">Wowhead ↗</a>
+        </div>
+      `).join("");
+    }
+
+    function appendLog(entry) {
+      const log = $("log");
+      const div = document.createElement("div");
+      div.className = entry.level || "info";
+      div.textContent = entry.text;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+      while (log.children.length > 300) log.removeChild(log.firstChild);
+    }
+
+    function setStatus(status, message) {
+      const pill = $("status-pill");
+      pill.textContent = status;
+      pill.className = "pill " + (status === "scanning" || status === "caching" ? "scanning"
+        : status === "error" ? "error"
+        : message && message.includes("new listing") ? "alert"
+        : "waiting");
+      $("status-msg").textContent = message || "";
+    }
+
+    function applySnapshot(data) {
+      setStatus(data.status, data.message);
+      $("scan-label").textContent = data.scan_number ? `Scan #${data.scan_number}` : "Scan";
+      $("progress-text").textContent = `${data.realm_index} / ${data.realm_total || "—"}`;
+      const pct = data.realm_total ? (data.realm_index / data.realm_total) * 100 : 0;
+      $("progress-fill").style.width = pct + "%";
+      $("current-realm").textContent = data.current_realm || (data.status === "waiting" && data.next_scan_at
+        ? `Next scan ${new Date(data.next_scan_at * 1000).toLocaleTimeString()}`
+        : "—");
+      renderAlerts(data.new_alerts.length ? data.new_alerts : data.matches);
+      (data.new_alerts || []).forEach(maybeNotify);
+    }
+
+    function maybeNotify(alert) {
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
+      const key = `${alert.connected_realm_id}:${alert.auction_id}`;
+      if (notifiedKeys.has(key)) return;
+      notifiedKeys.add(key);
+      new Notification(`Item found — ${alert.buyout_gold.toLocaleString()}g!`, {
+        body: `${alert.realm_names}\n${alert.secondaries}`,
+        requireInteraction: true,
+      });
+      try {
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        gain.gain.value = 0.15;
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+      } catch (error) {
+        // Browser audio can be blocked until the page receives a user gesture.
+      }
+    }
+
+    $("notify-btn").onclick = async () => {
+      const perm = await Notification.requestPermission();
+      $("notify-btn").hidden = perm === "granted";
+    };
+
+    if ("Notification" in window && Notification.permission === "default") {
+      $("notify-btn").hidden = false;
+    }
+
+    loadConfig();
+
+    const es = new EventSource("/api/events");
+    es.onmessage = (e) => {
+      const event = JSON.parse(e.data);
+      if (event.type === "snapshot") {
+        applySnapshot(event.data);
+      } else if (event.type === "log") {
+        appendLog({ level: event.level, text: event.text });
+      } else if (event.type === "alert") {
+        maybeNotify(event.alert);
+        renderAlerts([event.alert, ...alerts]);
+      }
+    };
+    es.onerror = () => {
+      setStatus("error", "Connection lost — refresh page");
+    };
+
+    fetch("/api/state").then((r) => r.json()).then(applySnapshot);
+  </script>
+</body>
+</html>
