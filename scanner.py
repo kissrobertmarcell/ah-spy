@@ -87,9 +87,12 @@ def ensure_realm_cache(client: BlizzardClient, on_progress: ProgressCallback | N
     return realms_map
 
 
-def _matches_filters(auction: dict, bonus_data: BonusData) -> tuple[bool, list[int], int]:
+def _matches_filters(auction: dict, bonus_data: BonusData, dynamic_cfg=None) -> tuple[bool, list[int], int]:
+    if dynamic_cfg is None:
+        dynamic_cfg = config
+    
     item = auction.get("item") or {}
-    if item.get("id") != config.ITEM_ID:
+    if item.get("id") != dynamic_cfg.item_id:
         return False, [], 0
 
     buyout = auction.get("buyout") or 0
@@ -97,21 +100,21 @@ def _matches_filters(auction: dict, bonus_data: BonusData) -> tuple[bool, list[i
         return False, [], 0
 
     buyout_gold = buyout // 10_000
-    if buyout_gold > config.MAX_BUYOUT_GOLD:
+    if buyout_gold > dynamic_cfg.max_buyout_gold:
         return False, [], 0
 
     bonus_ids = item.get("bonus_lists") or []
 
-    if config.MUST_HAVE_SOCKET and not has_socket(bonus_ids, bonus_data):
+    if dynamic_cfg.must_have_socket and not has_socket(bonus_ids, bonus_data):
         return False, [], 0
 
     difficulty = get_difficulty(bonus_ids, bonus_data)
-    if difficulty != config.DIFFICULTY:
+    if difficulty != dynamic_cfg.difficulty:
         return False, [], 0
 
     secondaries = get_auction_secondaries(item, bonus_data)
     secondary_set = frozenset(secondaries)
-    if secondary_set not in config.ACCEPTED_SECONDARY_SETS:
+    if secondary_set not in dynamic_cfg.accepted_secondary_sets:
         return False, [], 0
 
     return True, secondaries, buyout_gold
@@ -121,7 +124,11 @@ def scan_eu(
     client: BlizzardClient,
     bonus_data: BonusData,
     on_progress: ProgressCallback | None = None,
+    dynamic_cfg=None,
 ) -> list[Match]:
+    if dynamic_cfg is None:
+        dynamic_cfg = config
+    
     def emit(kind: str, **data) -> None:
         if on_progress:
             on_progress({"kind": kind, **data})
@@ -133,7 +140,7 @@ def scan_eu(
 
     emit("scan_start", total=len(realm_ids))
     if not on_progress:
-        print(f"Scanning {len(realm_ids)} EU connected realms for item {config.ITEM_ID}...")
+        print(f"Scanning {len(realm_ids)} EU connected realms for item {dynamic_cfg.item_id}...")
 
     for i, cr_id in enumerate(realm_ids, 1):
         label = _realm_label(realms_map[cr_id])
@@ -149,7 +156,7 @@ def scan_eu(
 
         found = 0
         for auction in auctions:
-            ok, secondaries, buyout_gold = _matches_filters(auction, bonus_data)
+            ok, secondaries, buyout_gold = _matches_filters(auction, bonus_data, dynamic_cfg)
             if not ok:
                 continue
 
@@ -160,8 +167,8 @@ def scan_eu(
                 realm_names=label,
                 buyout_gold=buyout_gold,
                 secondaries=secondaries,
-                difficulty=config.DIFFICULTY,
-                item_id=config.ITEM_ID,
+                difficulty=dynamic_cfg.difficulty,
+                item_id=dynamic_cfg.item_id,
             )
             matches.append(match)
             emit("match", match=match.to_dict())
