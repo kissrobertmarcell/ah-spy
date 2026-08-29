@@ -48,9 +48,36 @@ def run_once(client: BlizzardClient, bonus_data) -> None:
 
 def main() -> None:
     _configure_stdout()
-    parser = argparse.ArgumentParser(description="EU WoW AH alert for item 271445")
+    parser = argparse.ArgumentParser(description="EU WoW AH alert for a specific item")
     parser.add_argument("--once", action="store_true", help="Run one scan and exit")
+    parser.add_argument("--item-id", type=int, default=config.ITEM_ID, help="Item ID to monitor")
+    parser.add_argument("--max-buyout-gold", type=int, default=config.MAX_BUYOUT_GOLD, help="Max buyout in gold")
+    parser.add_argument(
+        "--socket/--no-socket",
+        dest="must_have_socket",
+        default=config.MUST_HAVE_SOCKET,
+        help="Require an item socket or allow any socket state",
+    )
+    parser.add_argument(
+        "--difficulty",
+        type=int,
+        choices=sorted(config.DIFFICULTY_LABELS),
+        default=config.DIFFICULTY,
+        help="Item difficulty: 0=LFR, 1=Normal, 2=Heroic, 3=Mythic",
+    )
+    parser.add_argument(
+        "--stats",
+        default=None,
+        help='Accepted secondary stat combo(s), e.g. "crit,haste|crit,mastery|haste,mastery"',
+    )
     args = parser.parse_args()
+
+    config.ITEM_ID = args.item_id
+    config.MAX_BUYOUT_GOLD = args.max_buyout_gold
+    config.MUST_HAVE_SOCKET = args.must_have_socket
+    config.DIFFICULTY = args.difficulty
+    if args.stats:
+        config.ACCEPTED_SECONDARY_SETS = config.parse_secondary_sets(args.stats)
 
     _validate_credentials()
 
@@ -58,7 +85,9 @@ def main() -> None:
     bonus_data = fetch_bonus_data()
     print(
         f"Watching item {config.ITEM_ID} on EU — max {config.MAX_BUYOUT_GOLD:,}g, "
-        f"Heroic, socket, Crit/Haste/Mastery combos — every {config.POLL_INTERVAL_SECONDS}s"
+        f"{config.DIFFICULTY_LABELS.get(config.DIFFICULTY, 'Unknown')}, "
+        f"{('socket required' if config.MUST_HAVE_SOCKET else 'socket optional')}, "
+        f"{', '.join(config.format_secondary_set(s) for s in config.ACCEPTED_SECONDARY_SETS)} — every {config.POLL_INTERVAL_SECONDS}s"
     )
 
     client = BlizzardClient(config.BLIZZARD_CLIENT_ID, config.BLIZZARD_CLIENT_SECRET)

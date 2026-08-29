@@ -167,10 +167,21 @@
     const $ = (id) => document.getElementById(id);
     let notifiedKeys = new Set();
 
+    function formatStats(sets) {
+      return sets.map((set) => set.map((id) => ["Crit", "Haste", "Mastery", "Versatility"][id]).join("/"))
+        .join(" · ");
+    }
+
     async function loadConfig() {
       const cfg = await fetch("/api/config").then((r) => r.json());
+      const title = `WoW AH Alert — Item ${cfg.item_id}`;
+      document.title = title;
       $("filters").textContent =
-        `≤ ${cfg.max_buyout_gold.toLocaleString()}g · Heroic · Socket · Crit/Haste/Mastery · every ${cfg.poll_interval_seconds / 60} min`;
+        `Item ${cfg.item_id} · ≤ ${cfg.max_buyout_gold.toLocaleString()}g · ${cfg.difficulty_label} · ${cfg.must_have_socket ? "Socket" : "No socket"} · ${formatStats(cfg.accepted_secondary_sets)} · every ${cfg.poll_interval_seconds / 60} min`;
+      $("status-msg").textContent = cfg.filter_summary;
+      $("alerts").innerHTML = '<p class="empty">No matches yet — you\'ll get a popup when one appears.</p>';
+      const header = document.querySelector("header h1");
+      if (header) header.textContent = title + " — EU AH Monitor";
     }
 
     let alerts = [];

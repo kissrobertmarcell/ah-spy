@@ -73,7 +73,23 @@ Already-alerted auction IDs are tracked in `data/alerted_auctions.json` so you w
 
 ## Config
 
-Edit `config.py` to change price cap, item ID, poll interval, or accepted stat combos.
+Edit `config.py` or use environment variables to change the price cap, item ID, socket requirement, difficulty, poll interval, or accepted stat combos.
+
+Useful overrides:
+
+```bash
+ITEM_ID=271445
+MAX_BUYOUT_GOLD=600000
+MUST_HAVE_SOCKET=true
+DIFFICULTY=2
+ACCEPTED_SECONDARY_SETS="crit,haste|crit,mastery|haste,mastery"
+```
+
+You can also override at runtime with CLI flags such as:
+
+```bash
+python main.py --item-id 271445 --socket --stats "crit,haste|crit,mastery|haste,mastery"
+```
 
 ## Why not scrape wowpay2win.com?
 

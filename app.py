@@ -53,7 +53,10 @@ async def get_config() -> dict:
         "poll_interval_seconds": config.POLL_INTERVAL_SECONDS,
         "region": config.REGION,
         "must_have_socket": config.MUST_HAVE_SOCKET,
-        "difficulty": "Heroic",
+        "difficulty": config.DIFFICULTY,
+        "difficulty_label": config.DIFFICULTY_LABELS.get(config.DIFFICULTY, "Unknown"),
+        "accepted_secondary_sets": [sorted(stats) for stats in config.ACCEPTED_SECONDARY_SETS],
+        "filter_summary": config.filter_summary(),
     }
 
 
